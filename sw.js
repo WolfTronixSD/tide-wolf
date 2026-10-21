@@ -1,8 +1,8 @@
 // Tide Wolf service worker: keeps the app usable at the beach with a weak signal.
 // Page and tides.json: network first, saved copy as fallback. Versioned files (?v=) and icons: saved copy first.
 // Open-Meteo and NOAA calls are not touched here; app.js keeps its own saved copy of them.
-const CACHE = "tide-wolf-1.0.0";
-const PRECACHE = ["./", "index.html", "style.css?v=1.0.0", "app.js?v=1.0.0", "data.js?v=1.0.0", "version.js?v=1.0.0", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png"];
+const CACHE = "tide-wolf-1.0.1";
+const PRECACHE = ["./", "index.html", "style.css?v=1.0.1", "app.js?v=1.0.1", "data.js?v=1.0.1", "version.js?v=1.0.1", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));

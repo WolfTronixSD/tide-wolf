@@ -196,7 +196,7 @@ function conditions(b, at) {
     windDir: w && w.current ? w.current.wind_direction_10m : null,
     code: now && w && w.current ? w.current.weather_code : hourly(w, "weather_code", at),
     air: w && w.current ? w.current.temperature_2m : null,
-    tide: tideAt(st, at), tideSoon: tideAt(st, at + HOUR), next: nextTide(st, at),
+    tide: tideAt(st, at), tideSoon: tideAt(st, at + 15 * 60e3), next: nextTide(st, at),
     water: null, rain: null, sunrise: null, sunset: null
   };
   // Water: the NOAA pier sensor when it's fresh and close by, otherwise the Open-Meteo sea-surface estimate

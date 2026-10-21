@@ -2,6 +2,11 @@
 
 The app shows this history on its "What's new" page (source: `version.js`).
 
+## 1.0.1 (2026-10-21): First fixes
+
+- style.css: `[hidden]` now beats `.sheet-back { display: flex }`, so the Settings and What's new sheets start closed.
+- app.js: tide trend compares now with 15 minutes ahead instead of an hour, so it no longer says "rising" just before a low.
+
 ## 1.0.0 (2026-10-21): Tide Wolf is born
 
 - Go / Maybe / Nope verdict with a 0–100 score for 8 San Diego beaches, built from waves, wind, tide height and direction, water temperature, rain in the last 72 hours (county runoff advisory), daylight and storms.
