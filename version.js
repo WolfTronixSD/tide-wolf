@@ -1,7 +1,16 @@
 // Bump APP_VERSION, the ?v= numbers in index.html and CACHE in sw.js, and add an entry at the top of CHANGELOG for every release.
 // `node scripts/check.mjs` fails if they don't match.
-const APP_VERSION = "1.0.1";
+const APP_VERSION = "1.0.2";
 const CHANGELOG = [
+  {
+    version: "1.0.2",
+    date: "2026-10-21",
+    title: "Bigger tide chart",
+    changes: [
+      "🌊 The tide chart is drawn for a phone screen, so times and heights are easy to read",
+      "🔵 Dots mark every high and low on the curve"
+    ]
+  },
   {
     version: "1.0.1",
     date: "2026-10-21",

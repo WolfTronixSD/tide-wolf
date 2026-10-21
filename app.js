@@ -350,8 +350,8 @@ function renderChart(b, c) {
   const t0 = Date.parse(day + "T00:00:00Z") - off * 1000, t1 = t0 + 24 * HOUR;
   const pts = st.curve.map((p) => [Date.parse(p.t), p.v]).filter(([ms]) => ms >= t0 - HOUR && ms <= t1 + HOUR);
   if (pts.length < 3) { el.innerHTML = '<p class="muted">Waiting for fresh tide predictions.</p>'; return; }
-  const W = 600, H = 190, P = { l: 30, r: 10, t: 22, b: 22 };
-  const vs = pts.map((p) => p[1]), lo = Math.floor(Math.min(...vs) - 0.3), hi = Math.ceil(Math.max(...vs) + 0.3);
+  const W = 360, H = 200, P = { l: 24, r: 8, t: 24, b: 22 };
+  const vs = pts.map((p) => p[1]), lo = Math.floor(Math.min(...vs) - 0.9), hi = Math.ceil(Math.max(...vs) + 0.6);
   const x = (ms) => P.l + (ms - t0) / (t1 - t0) * (W - P.l - P.r), y = (v) => P.t + (hi - v) / (hi - lo) * (H - P.t - P.b);
   const clip = pts.filter(([ms]) => ms >= t0 && ms <= t1);
   const line = clip.map(([ms, v], i) => `${i ? "L" : "M"}${x(ms).toFixed(1)},${y(v).toFixed(1)}`).join("");
@@ -359,13 +359,14 @@ function renderChart(b, c) {
   if (c.sunrise) svg += `<rect class="night" x="${P.l}" y="${P.t}" width="${(x(c.sunrise) - P.l).toFixed(1)}" height="${H - P.t - P.b}"/><rect class="night" x="${x(c.sunset).toFixed(1)}" y="${P.t}" width="${(W - P.r - x(c.sunset)).toFixed(1)}" height="${H - P.t - P.b}"/>`;
   svg += '<g class="grid">';
   for (let v = lo; v <= hi; v += (hi - lo > 6 ? 2 : 1)) svg += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${P.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
-  for (let h = 6; h < 24; h += 6) svg += `<text x="${x(t0 + h * HOUR)}" y="${H - 6}" text-anchor="middle">${h === 12 ? "noon" : h < 12 ? h + "am" : h - 12 + "pm"}</text>`;
+  for (let h = 6; h < 24; h += 6) svg += `<text x="${x(t0 + h * HOUR).toFixed(1)}" y="${H - 6}" text-anchor="middle">${h === 12 ? "noon" : h < 12 ? h + "am" : h - 12 + "pm"}</text>`;
   svg += "</g>";
   svg += `<path class="area" d="${line}L${x(clip.at(-1)[0]).toFixed(1)},${H - P.b}L${x(clip[0][0]).toFixed(1)},${H - P.b}Z"/><path class="curve" d="${line}"/>`;
   for (const p of st.hilo) {
     const ms = Date.parse(p.t); if (ms < t0 || ms > t1) continue;
-    const yy = y(p.v) + (p.type === "H" ? -8 : 16);
-    svg += `<text class="hl" x="${Math.min(W - 40, Math.max(P.l + 20, x(ms)))}" y="${yy}" text-anchor="middle">${p.type === "H" ? "▲" : "▼"} ${p.v.toFixed(1)}′ ${t(ms)}</text>`;
+    const yy = y(p.v) + (p.type === "H" ? -9 : 17);
+    svg += `<circle class="nowdot" style="fill:var(--sea)" cx="${x(ms).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3"/>`;
+    svg += `<text class="hl" x="${Math.min(W - P.r - 22, Math.max(P.l + 22, x(ms))).toFixed(1)}" y="${yy.toFixed(1)}" text-anchor="middle">${p.v.toFixed(1)}′ ${t(ms)}</text>`;
   }
   const now = Date.now(), tn = tideAt(st, now);
   if (tn != null && now >= t0 && now <= t1) svg += `<line class="now" x1="${x(now)}" x2="${x(now)}" y1="${P.t}" y2="${H - P.b}"/><circle class="nowdot" cx="${x(now)}" cy="${y(tn)}" r="5"/>`;

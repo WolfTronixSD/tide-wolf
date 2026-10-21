@@ -2,6 +2,10 @@
 
 The app shows this history on its "What's new" page (source: `version.js`).
 
+## 1.0.2 (2026-10-21): Bigger tide chart
+
+- app.js: chart drawn at 360 wide (phone width) so labels stay readable, more room below the lows, a dot on each high and low.
+
 ## 1.0.1 (2026-10-21): First fixes
 
 - style.css: `[hidden]` now beats `.sheet-back { display: flex }`, so the Settings and What's new sheets start closed.

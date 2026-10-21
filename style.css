@@ -89,8 +89,9 @@ h2 { margin: 0; font-size: 1.15rem; font-weight: 600; }
 .chart .night { fill: color-mix(in srgb, var(--text) 7%, transparent); }
 .chart .now { stroke: var(--accent); stroke-width: 2; }
 .chart .nowdot { fill: var(--accent); }
-.chart text { fill: var(--muted); font-size: 11px; font-family: var(--body); }
-.chart .hl { fill: var(--text); font-weight: 600; }
+.chart text { fill: var(--muted); font-size: 10.5px; font-family: var(--body); }
+.chart { margin-inline: -4px; }
+.chart .hl { fill: var(--text); font-weight: 600; font-size: 11px; }
 .chart .grid line { stroke: var(--line); }
 .tide-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 10px; }
 .tide-list div { font-size: .88rem; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
