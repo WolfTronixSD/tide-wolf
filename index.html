@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-skin="night" data-mode="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tide Wolf">
+<meta name="theme-color" content="#0b0820">
+<meta name="description" content="San Diego tides, water temperature, surf and a big go-snorkel-now verdict.">
+<title>Tide Wolf</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon-180.png?v=1.0.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1.0.0">
+</head>
+<body>
+<header class="top">
+  <button class="wolf-btn" id="wolfBtn" aria-label="Wolfie the wolf: tap for a tip"><svg id="wolf" viewBox="0 0 64 64" aria-hidden="true"></svg></button>
+  <div class="brand">
+    <h1>Tide Wolf</h1>
+    <div class="sub" id="clock">San Diego</div>
+  </div>
+  <button class="icon-btn" id="newsBtn" aria-label="What's new">✨</button>
+  <button class="icon-btn" id="setBtn" aria-label="Settings">⚙️</button>
+</header>
+
+<main>
+  <nav class="beaches" id="beaches" aria-label="Beaches"></nav>
+
+  <section class="card verdict" id="verdict" aria-live="polite">
+    <div class="v-top">
+      <div>
+        <div class="v-q">Go snorkel now at <span id="vBeach">La Jolla Cove</span>?</div>
+        <div class="v-word" id="vWord">…</div>
+        <div class="v-line" id="vLine">Sniffing the ocean…</div>
+      </div>
+      <div class="v-score" id="vScore" aria-label="Score">--</div>
+    </div>
+    <ul class="reasons" id="reasons"></ul>
+    <div class="window" id="window" hidden></div>
+  </section>
+
+  <section class="grid" id="stats" aria-label="Conditions"></section>
+
+  <section class="card">
+    <div class="card-head"><h2>🌊 Tide today</h2><span class="muted small" id="tideStation"></span></div>
+    <div class="chart" id="chart"></div>
+    <div class="tide-list" id="tideList"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>📝 Before you go</h2></div>
+    <p class="tip" id="beachTip"></p>
+    <div class="links">
+      <a class="pill" href="https://www.sdbeachinfo.com/" target="_blank" rel="noopener">🚫 Beach closures &amp; water quality</a>
+      <a class="pill" href="https://coollab.ucsd.edu/pierviz/" target="_blank" rel="noopener">🤿 Scripps Pier visibility</a>
+      <a class="pill" id="mapLink" href="https://maps.apple.com/" target="_blank" rel="noopener">🗺️ Directions</a>
+    </div>
+  </section>
+
+  <button class="went" id="wentBtn">🤿 I went in!</button>
+
+  <section class="card" id="swimsCard">
+    <div class="card-head"><h2>🏅 My swims</h2><span class="muted small" id="swimCount"></span></div>
+    <div id="swims" class="swims"></div>
+  </section>
+
+  <footer class="foot">
+    <div id="age">Loading tides…</div>
+    <div>Tides &amp; water temp: NOAA · Waves &amp; weather: Open-Meteo · <button class="linkish" id="verBtn">v<span id="ver"></span></button></div>
+    <div class="muted">Just a helper, not a lifeguard. Swim near one when you can.</div>
+  </footer>
+</main>
+
+<div class="sheet-back" id="setSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="sheet-head"><h2 id="setTitle">⚙️ Settings</h2><button class="icon-btn close" data-close aria-label="Close">✕</button></div>
+    <div class="set-row"><span>Theme</span><div class="seg" id="skinSeg">
+      <button data-v="night">🌙 Night</button><button data-v="kelp">🌿 Kelp</button><button data-v="sunset">🌅 Sunset</button></div></div>
+    <div class="set-row"><span>Light / dark</span><div class="seg" id="modeSeg">
+      <button data-v="auto">Auto</button><button data-v="dark">Dark</button><button data-v="light">Light</button></div></div>
+    <div class="set-row"><span>Temperatures</span><div class="seg" id="unitSeg">
+      <button data-v="f">°F first</button><button data-v="c">°C first</button></div></div>
+    <div class="set-row"><span>Sounds</span><div class="seg" id="soundSeg"><button data-v="on">On</button><button data-v="off">Mute</button></div></div>
+    <div class="set-row"><span>Haptics</span><div class="seg" id="hapSeg"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+    <div class="set-row col"><span>Start at the beach nearest to me</span>
+      <button class="btn" id="locBtn">📍 Use my location</button>
+      <small class="muted" id="locNote">Your location never leaves this phone. Without it, Tide Wolf starts at La Jolla Cove.</small></div>
+    <div class="set-row col"><span>Backup</span>
+      <div class="row"><button class="btn" id="exportBtn">⬇️ Export</button><label class="btn" for="importFile">⬆️ Import</label><input type="file" id="importFile" accept="application/json,.json" hidden></div>
+      <small class="muted">Saves your favorites, settings and swims as a JSON file. Safari and the home-screen app keep separate copies, so use this to move them across.</small></div>
+    <div class="set-row col"><span>Install</span>
+      <small class="muted">In Safari tap Share → Add to Home Screen. Works offline with the last tides it saw.</small></div>
+  </div>
+</div>
+
+<div class="sheet-back" id="newsSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="newsTitle">
+    <div class="sheet-head"><h2 id="newsTitle">✨ What's new</h2><button class="icon-btn close" data-close aria-label="Close">✕</button></div>
+    <div id="newsList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script src="version.js?v=1.0.0"></script>
+<script src="data.js?v=1.0.0"></script>
+<script src="app.js?v=1.0.0"></script>
+</body>
+</html>
