@@ -36,7 +36,7 @@ let ok = 0;
 for (const [id, s] of Object.entries(STATIONS)) {
   const out = { name: s.name, hilo: [], curve: [], water: null };
   try {
-    const base = { station: id, datum: "MLLW", product: "predictions", begin_date: ymd(start), range: "120" };
+    const base = { station: id, datum: "MLLW", product: "predictions", begin_date: ymd(start), range: "168" };
     const hilo = await get({ ...base, interval: "hilo" });
     out.hilo = hilo.predictions.map((p) => ({ t: toIso(p.t), v: +(+p.v).toFixed(2), type: p.type }));
     const curve = await get({ ...base, interval: "30" });

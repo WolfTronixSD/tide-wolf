@@ -20,6 +20,7 @@ const cacheSet = (k, v) => { try { localStorage.setItem("tw-" + k, JSON.stringif
 const fmtTime = new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
 const fmtHour = new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric" });
 const fmtDay = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" });
+const fmtDayLong = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "long" });
 const fmtDate = new Intl.DateTimeFormat("en-US", { timeZone: TZ, month: "short", day: "numeric" });
 const fmtClock = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short", hour: "numeric", minute: "2-digit" });
 const fmtYmd = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
@@ -131,7 +132,7 @@ async function loadTides() {
   }
   // tides.json missing or very old (GitHub skipped the refresh): ask NOAA straight from the phone
   const needed = [...new Set(BEACHES.map((b) => b.station))];
-  const stale = !D.tides || Date.now() - D.tidesAt > 36 * HOUR || needed.some((id) => !D.tides[id] || !D.tides[id].curve.length || Date.parse(D.tides[id].curve.at(-1).t) < Date.now() + 12 * HOUR);
+  const stale = !D.tides || Date.now() - D.tidesAt > 36 * HOUR || needed.some((id) => !D.tides[id] || !D.tides[id].curve.length || Date.parse(D.tides[id].curve.at(-1).t) < localMidnight(Date.now()) + (TIDE_DAYS * 24 + 1) * HOUR);
   if (!stale) return;
   try {
     const out = { ...(D.tides || {}) };
@@ -141,7 +142,7 @@ async function loadTides() {
 }
 async function noaaLive(id) {
   const begin = new Date(Date.now() - 36 * HOUR).toISOString().slice(0, 10).replace(/-/g, "");
-  const base = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?application=TideWolf&format=json&units=english&time_zone=gmt&datum=MLLW&product=predictions&range=120&station=" + id + "&begin_date=" + begin;
+  const base = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?application=TideWolf&format=json&units=english&time_zone=gmt&datum=MLLW&product=predictions&range=168&station=" + id + "&begin_date=" + begin;
   const iso = (s) => s.replace(" ", "T") + ":00Z";
   const [h, c] = await Promise.all([getJSON(base + "&interval=hilo"), getJSON(base + "&interval=30")]);
   return { name: STATIONS[id].name, hilo: h.predictions.map((p) => ({ t: iso(p.t), v: +p.v, type: p.type })), curve: c.predictions.map((p) => ({ t: iso(p.t), v: +p.v })), water: (D.tides && D.tides[id] && D.tides[id].water) || null };
@@ -157,7 +158,7 @@ async function loadMarine() {
 async function loadWx() {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}` +
     "&current=temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m" +
-    "&hourly=wind_speed_10m,weather_code,precipitation&daily=sunrise,sunset&past_days=3&forecast_days=2" +
+    "&hourly=wind_speed_10m,weather_code,precipitation&daily=sunrise,sunset&past_days=3&forecast_days=3" +
     "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FLos_Angeles";
   try { const j = await getJSON(url); D.wx = Array.isArray(j) ? j : [j]; D.wxAt = Date.now(); cacheSet("wx", { at: D.wxAt, data: D.wx }); }
   catch { const c = cacheGet("wx"); if (c) { D.wx = c.data; D.wxAt = c.at; D.offline = true; } }
@@ -333,46 +334,81 @@ function render() {
   ];
   $("stats").innerHTML = tiles.map(([l, v, s]) => `<div class="stat"><div class="lbl">${l}</div><b>${v}</b><small>${esc(s)}</small></div>`).join("");
 
-  renderChart(b, c);
+  renderChart(b);
   $("beachTip").textContent = b.tip;
   $("mapLink").href = `https://maps.apple.com/?daddr=${b.lat},${b.lon}&q=${encodeURIComponent(b.name)}`;
   renderBeaches();
   renderAge();
 }
 
-function renderChart(b, c) {
+// Midnight in San Diego for the day that holds `ms` (handles the daylight-saving switch)
+const fmtOff = new Intl.DateTimeFormat("en-US", { timeZone: TZ, timeZoneName: "longOffset" });
+function localMidnight(ms) {
+  const ymd = fmtYmd.format(ms);
+  const guess = Date.parse(ymd + "T12:00:00Z");
+  const m = (fmtOff.formatToParts(guess).find((p) => p.type === "timeZoneName") || {}).value || "GMT-08:00";
+  const [, sign, hh, mm] = m.match(/([+-])(\d{2}):?(\d{2})?/) || [, "-", "08", "00"];
+  const off = (sign === "-" ? -1 : 1) * (+hh * 60 + +(mm || 0)) * 60e3;
+  return Date.parse(ymd + "T00:00:00Z") - off;
+}
+function sunFor(b, dayStart) {
+  const w = D.wx && D.wx[BEACHES.indexOf(b)];
+  if (!w || !w.daily) return null;
+  const off = w.utc_offset_seconds || 0, k = w.daily.time.indexOf(fmtYmd.format(dayStart + 12 * HOUR));
+  return k < 0 ? null : { rise: omTime(w.daily.sunrise[k], off), set: omTime(w.daily.sunset[k], off) };
+}
+
+const TIDE_DAYS = 3; // today, tomorrow, day after tomorrow
+
+function renderChart(b) {
   const st = D.tides && D.tides[b.station], el = $("chart");
   $("tideStation").textContent = st ? "NOAA " + st.name : "";
-  if (!st || !st.curve || !st.curve.length) { el.innerHTML = '<p class="muted">Tide data isn\'t here yet. It shows up as soon as the phone has a signal.</p>'; $("tideList").innerHTML = ""; return; }
-  // today, midnight to midnight in San Diego
-  const day = fmtYmd.format(Date.now());
-  const off = (D.wx && D.wx[0] && D.wx[0].utc_offset_seconds) || -7 * 3600;
-  const t0 = Date.parse(day + "T00:00:00Z") - off * 1000, t1 = t0 + 24 * HOUR;
-  const pts = st.curve.map((p) => [Date.parse(p.t), p.v]).filter(([ms]) => ms >= t0 - HOUR && ms <= t1 + HOUR);
-  if (pts.length < 3) { el.innerHTML = '<p class="muted">Waiting for fresh tide predictions.</p>'; return; }
-  const W = 360, H = 200, P = { l: 24, r: 8, t: 24, b: 22 };
-  const vs = pts.map((p) => p[1]), lo = Math.floor(Math.min(...vs) - 0.9), hi = Math.ceil(Math.max(...vs) + 0.6);
+  if (!st || !st.curve || !st.curve.length) { el.innerHTML = '<p class="muted">Tide data isn\'t here yet. It shows up as soon as the phone has a signal.</p>'; return; }
+  const now = Date.now(), today = localMidnight(now);
+  const days = [];
+  for (let k = 0; k < TIDE_DAYS; k++) {
+    const t0 = localMidnight(today + k * 24 * HOUR + 12 * HOUR), t1 = localMidnight(t0 + 36 * HOUR);
+    const pts = st.curve.map((p) => [Date.parse(p.t), p.v]).filter(([ms]) => ms >= t0 && ms <= t1);
+    days.push({ k, t0, t1, pts });
+  }
+  // One height scale for all days, so a big tide looks big next to a small one
+  const all = days.flatMap((d) => d.pts.map((p) => p[1]));
+  if (!all.length) { el.innerHTML = '<p class="muted">Waiting for fresh tide predictions.</p>'; return; }
+  const lo = Math.floor(Math.min(...all) - 0.9), hi = Math.ceil(Math.max(...all) + 0.6);
+  el.innerHTML = days.map((d) => {
+    const label = d.k === 0 ? "Today" : d.k === 1 ? "Tomorrow" : fmtDayLong.format(d.t0 + 12 * HOUR);
+    const head = `<div class="tide-day-head"><h3>${label}</h3><span class="muted small">${fmtDate.format(d.t0 + 12 * HOUR)}</span></div>`;
+    if (d.pts.length < 3) return `<div class="tide-day">${head}<p class="muted small">Tide predictions for this day arrive with the next update.</p></div>`;
+    return `<div class="tide-day">${head}${daySvg(st, d, lo, hi, sunFor(b, d.t0), now, label)}${dayList(st, d, now)}</div>`;
+  }).join("");
+}
+
+function daySvg(st, d, lo, hi, sun, now, label) {
+  const { t0, t1, pts } = d;
+  const W = 360, H = 190, P = { l: 24, r: 8, t: 24, b: 22 };
   const x = (ms) => P.l + (ms - t0) / (t1 - t0) * (W - P.l - P.r), y = (v) => P.t + (hi - v) / (hi - lo) * (H - P.t - P.b);
-  const clip = pts.filter(([ms]) => ms >= t0 && ms <= t1);
-  const line = clip.map(([ms, v], i) => `${i ? "L" : "M"}${x(ms).toFixed(1)},${y(v).toFixed(1)}`).join("");
-  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tide height through today">`;
-  if (c.sunrise) svg += `<rect class="night" x="${P.l}" y="${P.t}" width="${(x(c.sunrise) - P.l).toFixed(1)}" height="${H - P.t - P.b}"/><rect class="night" x="${x(c.sunset).toFixed(1)}" y="${P.t}" width="${(W - P.r - x(c.sunset)).toFixed(1)}" height="${H - P.t - P.b}"/>`;
+  const line = pts.map(([ms, v], i) => `${i ? "L" : "M"}${x(ms).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tide height ${label.toLowerCase()}">`;
+  if (sun) svg += `<rect class="night" x="${P.l}" y="${P.t}" width="${Math.max(0, x(sun.rise) - P.l).toFixed(1)}" height="${H - P.t - P.b}"/><rect class="night" x="${x(sun.set).toFixed(1)}" y="${P.t}" width="${Math.max(0, W - P.r - x(sun.set)).toFixed(1)}" height="${H - P.t - P.b}"/>`;
   svg += '<g class="grid">';
-  for (let v = lo; v <= hi; v += (hi - lo > 6 ? 2 : 1)) svg += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${P.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  for (let v = lo; v <= hi; v += (hi - lo > 6 ? 2 : 1)) svg += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${P.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${v}</text>`;
   for (let h = 6; h < 24; h += 6) svg += `<text x="${x(t0 + h * HOUR).toFixed(1)}" y="${H - 6}" text-anchor="middle">${h === 12 ? "noon" : h < 12 ? h + "am" : h - 12 + "pm"}</text>`;
   svg += "</g>";
-  svg += `<path class="area" d="${line}L${x(clip.at(-1)[0]).toFixed(1)},${H - P.b}L${x(clip[0][0]).toFixed(1)},${H - P.b}Z"/><path class="curve" d="${line}"/>`;
+  svg += `<path class="area" d="${line}L${x(pts.at(-1)[0]).toFixed(1)},${H - P.b}L${x(pts[0][0]).toFixed(1)},${H - P.b}Z"/><path class="curve" d="${line}"/>`;
   for (const p of st.hilo) {
-    const ms = Date.parse(p.t); if (ms < t0 || ms > t1) continue;
+    const ms = Date.parse(p.t); if (ms < t0 || ms >= t1) continue;
     const yy = y(p.v) + (p.type === "H" ? -9 : 17);
     svg += `<circle class="nowdot" style="fill:var(--sea)" cx="${x(ms).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3"/>`;
     svg += `<text class="hl" x="${Math.min(W - P.r - 22, Math.max(P.l + 22, x(ms))).toFixed(1)}" y="${yy.toFixed(1)}" text-anchor="middle">${p.v.toFixed(1)}′ ${t(ms)}</text>`;
   }
-  const now = Date.now(), tn = tideAt(st, now);
-  if (tn != null && now >= t0 && now <= t1) svg += `<line class="now" x1="${x(now)}" x2="${x(now)}" y1="${P.t}" y2="${H - P.b}"/><circle class="nowdot" cx="${x(now)}" cy="${y(tn)}" r="5"/>`;
-  el.innerHTML = svg + "</svg>";
-  const list = st.hilo.filter((p) => { const ms = Date.parse(p.t); return ms >= t0 && ms < t1 + 24 * HOUR; }).slice(0, 8);
-  $("tideList").innerHTML = list.map((p) => { const ms = Date.parse(p.t); return `<div class="${ms < now ? "past" : ""}">${p.type === "H" ? "▲ High" : "▼ Low"} <b>${p.v.toFixed(1)} ft</b><br>${ms >= t1 ? fmtDay.format(ms) + " " : ""}${t(ms)}</div>`; }).join("");
+  const tn = tideAt(st, now);
+  if (tn != null && now >= t0 && now < t1) svg += `<line class="now" x1="${x(now).toFixed(1)}" x2="${x(now).toFixed(1)}" y1="${P.t}" y2="${H - P.b}"/><circle class="nowdot" cx="${x(now).toFixed(1)}" cy="${y(tn).toFixed(1)}" r="5"/>`;
+  return svg + "</svg>";
+}
+
+function dayList(st, d, now) {
+  const list = st.hilo.filter((p) => { const ms = Date.parse(p.t); return ms >= d.t0 && ms < d.t1; });
+  return `<div class="tide-list">${list.map((p) => { const ms = Date.parse(p.t); return `<div class="${ms < now ? "past" : ""}">${p.type === "H" ? "▲ High" : "▼ Low"} <b>${p.v.toFixed(1)} ft</b><br>${t(ms)}</div>`; }).join("")}</div>`;
 }
 
 function renderAge() {

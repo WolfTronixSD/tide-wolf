@@ -96,6 +96,9 @@ h2 { margin: 0; font-size: 1.15rem; font-weight: 600; }
 .tide-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 10px; }
 .tide-list div { font-size: .88rem; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 .tide-list div.past { opacity: .45; }
+.tide-day + .tide-day { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.tide-day-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.tide-day-head h3 { margin: 0; font-family: var(--font); font-weight: 600; font-size: 1.02rem; }
 
 .tip { margin: 0 0 10px; }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }

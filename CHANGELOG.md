@@ -2,6 +2,12 @@
 
 The app shows this history on its "What's new" page (source: `version.js`).
 
+## 1.1.0 (2026-11-26): Three days of tides
+
+- Tide card shows today, tomorrow and the day after, each with its own chart and highs/lows list, on one shared height scale.
+- Night shading per day (Open-Meteo forecast now asks for 3 days of sunrise/sunset).
+- NOAA fetch range raised from 120 to 168 hours, and the app asks NOAA directly if tides.json no longer covers all three days.
+
 ## 1.0.2 (2026-10-21): Bigger tide chart
 
 - app.js: chart drawn at 360 wide (phone width) so labels stay readable, more room below the lows, a dot on each high and low.

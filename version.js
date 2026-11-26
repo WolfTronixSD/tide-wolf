@@ -1,7 +1,17 @@
 // Bump APP_VERSION, the ?v= numbers in index.html and CACHE in sw.js, and add an entry at the top of CHANGELOG for every release.
 // `node scripts/check.mjs` fails if they don't match.
-const APP_VERSION = "1.0.2";
+const APP_VERSION = "1.1.0";
 const CHANGELOG = [
+  {
+    version: "1.1.0",
+    date: "2026-11-26",
+    title: "Three days of tides",
+    changes: [
+      "📅 Tide charts for today, tomorrow and the day after, one under the other",
+      "📏 All three use the same height scale, so you can see which day has the biggest swing",
+      "🌙 Night shading for each day from its own sunrise and sunset"
+    ]
+  },
   {
     version: "1.0.2",
     date: "2026-10-21",
